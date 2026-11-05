@@ -192,9 +192,9 @@ If using WhatsApp features (`/wa` or WhatsApp sync):
 
 ### Running as a Systemd Service
 
-A preconfigured systemd unit file is included in [`tg-channel-joiner.service`](file:///home/tharusha/Documents/tg-channel-joiner/tg-channel-joiner.service).
+A preconfigured systemd unit template is included in [`tg-channel-joiner.service`](tg-channel-joiner.service).
 
-1. Edit the service file with your correct paths and user:
+1. Edit the service file with your actual paths and username:
    ```ini
    [Unit]
    Description=tg-sync-bot Telegram Channel Joiner, Downloader & Streamer Bot
@@ -203,10 +203,10 @@ A preconfigured systemd unit file is included in [`tg-channel-joiner.service`](f
 
    [Service]
    Type=simple
-   User=tharusha
-   WorkingDirectory=/home/tharusha/Documents/tg-channel-joiner
-   Environment="PATH=/home/tharusha/Documents/tg-channel-joiner/venv/bin:/usr/local/bin:/usr/bin:/bin"
-   ExecStart=/home/tharusha/Documents/tg-channel-joiner/venv/bin/python /home/tharusha/Documents/tg-channel-joiner/bot.py
+   User=your_user
+   WorkingDirectory=/home/your_user/tg-sync-bot
+   Environment="PATH=/home/your_user/tg-sync-bot/venv/bin:/usr/local/bin:/usr/bin:/bin"
+   ExecStart=/home/your_user/tg-sync-bot/venv/bin/python /home/your_user/tg-sync-bot/bot.py
    Restart=always
    RestartSec=5
    StandardOutput=journal

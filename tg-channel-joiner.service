@@ -5,9 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/tharusha/Documents/tg-channel-joiner
-Environment="PATH=/home/tharusha/Documents/tg-channel-joiner/venv/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/tharusha/Documents/tg-channel-joiner/venv/bin/python /home/tharusha/Documents/tg-channel-joiner/bot.py
+WorkingDirectory=/home/your_user/tg-sync-bot
+Environment="PATH=/home/your_user/tg-sync-bot/venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/your_user/tg-sync-bot/venv/bin/python /home/your_user/tg-sync-bot/bot.py
 Restart=always
 RestartSec=5
 StandardOutput=journal
