@@ -1,0 +1,50 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Telegram session files
+*.session
+*.session-journal
+
+# WhatsApp sidecar credentials & dependencies
+wa_sidecar/auth/
+wa_sidecar/node_modules/
+auth/
+node_modules/
+
+# Runtime configurations & databases
+sync_config.json
+payments.sqlite3
+*.db
+*.sqlite
+*.sqlite3
+
+# Downloaded files & temporary media
+downloads/
+temp/
+tmp/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Logs
+*.log
+
+# Editor & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

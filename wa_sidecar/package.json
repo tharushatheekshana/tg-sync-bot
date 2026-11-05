@@ -1,0 +1,20 @@
+{
+  "name": "wa-sidecar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local WhatsApp (Baileys) HTTP sidecar used by bot.py to upload files to WhatsApp groups",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "baileys": "^7.0.0-rc14",
+    "pino": "^10.4.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.33.5"
+  }
+}
