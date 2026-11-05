@@ -1,143 +1,319 @@
-# Telegram Channel Joiner & File Downloader Bot
+# tg-sync-bot — Telegram Channel Joiner, Downloader & Real-Time Sync Bot
 
-A hybrid Telegram bot built with **Telethon** where you interact with your **@BotFather** bot, and your connected **Telegram User Account** automatically:
-1. **Joins channels** (public links, `@username`, or private `t.me/+...` invite links).
-2. **Downloads & sends files/messages** from private or public channel message links (e.g. `https://t.me/c/4351613423/2`), including content-restricted (`noforwards`) channels.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Telethon](https://img.shields.io/badge/Telethon-1.36%2B-2CA5E0.svg)](https://docs.telethon.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-green.svg)](https://nodejs.org/)
+[![Baileys](https://img.shields.io/badge/WhatsApp-Baileys-25D366.svg)](https://github.com/WhiskeySockets/Baileys)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+A hybrid Telegram bot and user client built with **Telethon** and **Node.js (Baileys)**. Interact with your **@BotFather** bot while your connected **Telegram User Account** automatically:
+
+1. **Joins Channels**: Handles public `@username` handles and private `t.me/+...` invite links seamlessly.
+2. **Downloads & Forwards**: Bypasses content-restricted (`noforwards`) channels to download or copy media, preserving original filenames, captions, and thumbnails.
+3. **Streams Videos**: Built-in HTTP server with Range-request support and optional Cloudflare quick tunnels for instant video playback without waiting for full downloads.
+4. **Bulk Uploads**: Upload or forward post batches directly to target **Telegram Channels** or **WhatsApp Groups**.
+5. **Real-Time Auto-Sync**: Continuously monitors Telegram channels and syncs new posts in real-time to other Telegram channels or WhatsApp groups.
+6. **Tier System & Telegram Stars**: Built-in Free and VIP tiers with Telegram Stars (`50 XTR`) invoice checkout and admin controls.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Architecture & Workflow](#architecture--workflow)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+  - [Environment Variables](#environment-variables)
+- [Running the Bot](#running-the-bot)
+  - [WhatsApp Sidecar Pairing](#whatsapp-sidecar-pairing)
+  - [Running as a Systemd Service](#running-as-a-systemd-service)
+- [Command Reference](#command-reference)
+  - [General & Interactive Menu](#general--interactive-menu)
+  - [Download & Video Streaming](#download--video-streaming)
+  - [Telegram Channel Forwarding (`/tg`)](#telegram-channel-forwarding-tg)
+  - [WhatsApp Group Upload (`/wa`)](#whatsapp-group-upload-wa)
+  - [Real-Time Auto-Sync (`/sync` & `/tgsync`)](#real-time-auto-sync-sync--tgsync)
+  - [Paid VIP & Administration](#paid-vip--administration)
+- [Running Tests](#running-tests)
+- [License & Disclaimer](#license--disclaimer)
+
+---
 
 ## Features
-- **Join Public & Private Channels**:
-  - Public: `https://t.me/username`, `@username`
-  - Private: `https://t.me/+InviteHash`, `https://t.me/joinchat/InviteHash`, `tg://join?invite=InviteHash`
-- **Download & Send Files by Message Link**:
-  - Private channel post links: `https://t.me/c/4351613423/2`
-  - Topic/forum post links: `https://t.me/c/4351613423/10/25`
-  - Batch message ranges: `https://t.me/c/4351613423/2-5` (downloads messages 2 through 5 sequentially)
-  - Public channel post links: `https://t.me/channel_name/123`
-  - Live **Download & Upload Progress Bars** with speed (`MB/s`), preserving original filenames, thumbnails, captions, and video streaming support.
-- **Leave Channels**: Use `/leave <@username | link | channel_id>` to leave any joined channel.
-- **Bulk Download → Telegram Channel**: `/tg <links or range>` downloads/copies posts (including from `noforwards` restricted channels) and uploads them to a destination Telegram channel/group.
-- **Bulk Download → WhatsApp Group**: `/wa <links or range>` downloads every post and uploads it to a WhatsApp group (Paid VIP feature).
-- **Auto-Sync Channels → Telegram Channel or WhatsApp**: `/sync` & `/tgsync` continuously listen for new posts in monitored Telegram channels and automatically sync them to another Telegram channel and/or WhatsApp group in real-time.
-- **Interactive Menu & Public / Paid VIP Tier System**:
-  - **Interactive `/start` & `/help` Dashboard**: Step-by-step visual guides and inline buttons for every feature.
-  - **🆓 Free Plan (All Users)**: Unlimited channel joins, single/bulk downloads, video streaming (`/stream`), Telegram channel upload (`/tg`), and **1 Free Telegram-to-Telegram Auto-Sync rule** (`/tgsync`).
-  - **💎 Paid VIP Plan**: Unlocks **WhatsApp Group Auto-Sync & Bulk Upload** (`/sync` & `/wa`) and **Multiple Telegram Auto-Sync rules**. Users can pay 50 Telegram Stars for one calendar month (`/myplan`); owner-granted VIP access remains available (`/addpaid`, `/removepaid`, `/paidusers`).
 
-## Paid VIP Payments (Telegram Stars)
+### 🔗 Channel Joiner & Management
+- Join public channels by `@username` or `https://t.me/username`.
+- Join private channels via `https://t.me/+InviteHash`, `https://t.me/joinchat/InviteHash`, or `tg://join?invite=InviteHash`.
+- Batch join multiple channels with configurable rate-limit delays (`JOIN_DELAY_SECONDS`).
+- Leave joined channels effortlessly via `/leave <channel>`.
 
-The upgrade screen offers a one-time **50 Telegram Stars (XTR)** invoice for one calendar month of VIP access. Users can review `/terms` and must explicitly agree before checkout. Access starts after Telegram confirms successful payment; renewals extend the current expiration date, and the customer must renew manually (no recurring charge). Payment records and expirations are stored in `payments.sqlite3` beside `bot.py`; legacy owner/manual VIP grants remain unchanged. `/paysupport` directs users to the configured owner contact for billing and refund requests; Telegram Support cannot resolve purchases made through this bot. Owners can refund a user's latest unrefunded Stars payment with `/refundstars <user_id>` (or specify a charge ID).
+### 📥 High-Speed File & Media Downloader
+- Multi-connection parallel chunk downloading via `fast_telethon.py`.
+- Download single posts (`https://t.me/c/1234567890/5`) or batch ranges (`https://t.me/c/1234567890/5-20`).
+- **Restricted Content (`noforwards`) Support**: Automatically grabs protected media and re-uploads cleanly.
+- Live progress bars indicating percentage, download/upload speed (`MB/s`), and estimated time.
 
-This checkout uses the existing `BOT_TOKEN` and Telegram Bot API; no third-party provider token is required. The payment worker uses Bot API long polling (`getUpdates`), so the token must not also be running a webhook or a second `getUpdates` consumer. Configure `OWNER_CONTACT` in `.env` so users have a clear support contact. Test the flow with a test bot before offering paid access.
+### 🎥 HTTP Video Streaming Server (`stream_server.py`)
+- Direct video streaming from Telegram via HTTP chunked range requests (`Range: bytes=start-end`).
+- Built-in web video player for browser playback.
+- Optional automatic **Cloudflare Tunnel (`cloudflared`)** integration to expose streaming links over HTTPS without port forwarding.
 
-## Setup
+### ✈️ Telegram Channel Uploader (`/tg`)
+- Bulk download/copy posts from source channels directly into a target Telegram channel or group.
+- Preserves original metadata, formatting, and captions.
 
-### 1. Get Telegram Credentials
-1. **API_ID & API_HASH**: Go to [my.telegram.org](https://my.telegram.org) -> **API development tools** and copy your `api_id` and `api_hash`.
-2. **BOT_TOKEN**: Message [@BotFather](https://t.me/BotFather) on Telegram, run `/newbot`, and copy your bot token.
+### 📲 WhatsApp Group Uploader (`/wa`)
+- Powered by a local Node.js sidecar (`wa_sidecar/`) running [Baileys](https://github.com/WhiskeySockets/Baileys) as a linked device.
+- Uploads videos, images, audio, and documents (up to 2 GB) with original captions.
+- Includes pairing via QR code or numeric phone pairing code.
 
-### 2. Install Dependencies
+### 🔄 Real-Time Channel Auto-Sync (`/sync` & `/tgsync`)
+- Live event listening + background fallback polling for 100% sync reliability.
+- Syncs Telegram ➔ Telegram Channel, Telegram ➔ WhatsApp Group, or both simultaneously.
+- Catchup feature (`/sync catchup <rule_id> [count]`) to backfill past posts.
+- Fully persistent configuration (`sync_config.json`) surviving bot restarts.
+
+### 💎 Tier Management & Telegram Stars Payments
+- **Free Plan**: Unlimited channel joins, single/bulk downloads, video streaming (`/stream`), `/tg` uploads, and 1 Telegram-to-Telegram Auto-Sync rule.
+- **Paid VIP Plan**: WhatsApp Auto-Sync & Bulk Upload (`/sync` & `/wa`), and unlimited Telegram Auto-Sync rules.
+- **Telegram Stars (50 XTR)** invoice checkout for 1-month VIP access, stored with SQLite idempotency (`payments.sqlite3`).
+
+---
+
+## Architecture & Workflow
+
+```mermaid
+flowchart TD
+    User([Telegram User / BotFather Chat]) -->|Commands & Links| BotClient[Telethon Bot Client]
+    
+    subgraph CoreEngine [tg-sync-bot Engine]
+        BotClient --> CommandRouter{Command Router}
+        CommandRouter -->|Join / Fetch / Sync| UserClient[Telethon User Client]
+        CommandRouter -->|Stream Request| StreamSrv[aiohttp Streaming Server :8088]
+        CommandRouter -->|Sync Queue| SyncWorker[Sync Manager Worker]
+        CommandRouter -->|VIP Upgrade| StarsAPI[Telegram Stars API]
+    end
+
+    UserClient -->|MTProto API| TelegramCloud[(Telegram Servers)]
+    StreamSrv -->|HTTP Range Requests| WebBrowser([Web Browser / VLC Player])
+    StreamSrv -.->|Quick Tunnel| Cloudflare[Cloudflare Tunnel]
+    
+    SyncWorker -->|Post Sync| TelegramCloud
+    SyncWorker -->|HTTP IPC API| WASidecar[Node.js Baileys Sidecar :3100]
+    WASidecar -->|WebSocket| WhatsAppCloud[(WhatsApp Servers)]
+```
+
+---
+
+## Requirements
+
+- **Linux / macOS / Windows**
+- **Python 3.10+**
+- **Node.js 20+** and `npm` (required for WhatsApp sidecar)
+- **`ffmpeg`** *(Recommended)*: For fast MP4 atom remuxing (`+faststart`) and video thumbnail extraction.
+- **`cloudflared`** *(Optional)*: For automatic public streaming tunnels.
+
+---
+
+## Installation
+
+### 1. Clone the Repository
 ```bash
-cd /home/tharusha/Documents/tg-channel-joiner
+git clone https://github.com/tharushatheekshana/tg-sync-bot.git
+cd tg-sync-bot
+```
+
+### 2. Set Up Python Environment
+```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Configure `.env`
+### 3. Set Up WhatsApp Sidecar (Optional for WhatsApp Features)
+```bash
+cd wa_sidecar
+npm install
+cd ..
+```
+
+---
+
+## Configuration
+
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and fill in your `API_ID`, `API_HASH`, and `BOT_TOKEN`.
 
-### 4. Run the Bot
+### Environment Variables
+
+| Variable | Description | Default |
+|---|---|---|
+| `API_ID` | Telegram API ID from [my.telegram.org](https://my.telegram.org) | *Required* |
+| `API_HASH` | Telegram API Hash from [my.telegram.org](https://my.telegram.org) | *Required* |
+| `BOT_TOKEN` | Telegram Bot Token from [@BotFather](https://t.me/BotFather) | *Required* |
+| `STRING_SESSION` | Telethon StringSession string (leave empty to log in interactively) | `""` |
+| `OWNER_IDS` | Comma-separated list of Telegram User IDs for bot administrators | `""` |
+| `ADMIN_IDS` | Comma-separated list of authorized Paid VIP User IDs | `""` |
+| `PUBLIC_MODE` | Allow public users to use Free tier features (`true`/`false`) | `true` |
+| `FREE_MAX_TG_SYNC_RULES` | Max free Telegram-to-Telegram auto-sync rules per user | `1` |
+| `OWNER_CONTACT` | Support contact username (e.g. `@your_username`) for billing/refunds | `""` |
+| `JOIN_DELAY_SECONDS` | Delay in seconds between joining multiple channels | `3` |
+| `STREAM_PORT` | Port for the built-in video streaming HTTP server | `8088` |
+| `TG_UPLOAD_CHANNEL_ID` | Default Telegram destination channel ID (`-100...` or username) | `""` |
+| `WA_SIDECAR_AUTOSTART` | Automatically launch the Node.js WhatsApp sidecar | `true` |
+| `WA_SIDECAR_PORT` | Port for the local WhatsApp sidecar IPC server | `3100` |
+| `WA_GROUP_ID` | Default WhatsApp group JID (`...@g.us`) | `""` |
+| `WA_SEND_DELAY_SECONDS`| Delay between WhatsApp uploads to prevent rate limiting | `3` |
+
+> 💡 **Tip**: To generate a portable `STRING_SESSION` string instead of storing a local `.session` file, run:
+> ```bash
+> python generate_session.py
+> ```
+
+---
+
+## Running the Bot
+
+### Starting Locally
 ```bash
+source venv/bin/activate
 python bot.py
 ```
-1. First send the channel invite link (e.g. `https://t.me/+InviteHash`) to the bot so your user account joins the channel.
-2. Then send any file/message link from that channel (e.g. `https://t.me/c/4351613423/2`) and the bot will download and send the file directly to you!
+On first launch, if `STRING_SESSION` is not set in `.env`, the terminal will prompt you to enter your Telegram phone number and verification code to authenticate your user account.
 
+### WhatsApp Sidecar Pairing
+If using WhatsApp features (`/wa` or WhatsApp sync):
+1. Send `/walogin` to your bot in Telegram to receive a QR code, then scan it from WhatsApp (**Linked Devices** ➔ **Link a Device**).
+2. Or use `/walogin <phone_number>` (e.g., `/walogin 94771234567`) to pair via an 8-character pairing code.
+3. List your groups with `/wagroups` and set your default destination with `/wagroup <group_id>`.
 
-## WhatsApp Group Upload (`/wa`)
+### Running as a Systemd Service
 
-`bot.py` starts a small Node.js sidecar (`wa_sidecar/`, built on [Baileys](https://github.com/WhiskeySockets/Baileys)), which acts as a linked WhatsApp device. Files are downloaded with your Telegram user account and then uploaded to the WhatsApp group.
+A preconfigured systemd unit file is included in [`tg-channel-joiner.service`](file:///home/tharusha/Documents/tg-channel-joiner/tg-channel-joiner.service).
 
-### Setup (one time)
+1. Edit the service file with your correct paths and user:
+   ```ini
+   [Unit]
+   Description=tg-sync-bot Telegram Channel Joiner, Downloader & Streamer Bot
+   After=network-online.target
+   Wants=network-online.target
+
+   [Service]
+   Type=simple
+   User=tharusha
+   WorkingDirectory=/home/tharusha/Documents/tg-channel-joiner
+   Environment="PATH=/home/tharusha/Documents/tg-channel-joiner/venv/bin:/usr/local/bin:/usr/bin:/bin"
+   ExecStart=/home/tharusha/Documents/tg-channel-joiner/venv/bin/python /home/tharusha/Documents/tg-channel-joiner/bot.py
+   Restart=always
+   RestartSec=5
+   StandardOutput=journal
+   StandardError=journal
+
+   [Install]
+   WantedBy=default.target
+   ```
+
+2. Enable and start the service:
+   ```bash
+   sudo cp tg-channel-joiner.service /etc/systemd/system/tg-sync-bot.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now tg-sync-bot
+   ```
+
+3. Check logs:
+   ```bash
+   journalctl -u tg-sync-bot -f
+   ```
+
+---
+
+## Command Reference
+
+### General & Interactive Menu
+
+| Command | Description |
+|---|---|
+| `/start`, `/help`, `/menu` | Open the interactive main menu and guide |
+| `/status` | View system status, CPU/memory usage, and sidecar health |
+| `/cancel`, `/stop` | Cancel active downloads, uploads, or sync operations |
+| `/leave <channel>` | Leave a public or private joined channel |
+| `/url` | Show current video streaming server / tunnel URL |
+| `/newtunnel` | Generate a new Cloudflare tunnel for video streaming |
+
+### Download & Video Streaming
+
+| Command | Description |
+|---|---|
+| `/join <links...>` | Join channels via public handles or private invite links |
+| `<link>` or `/dl <link>` | Download a post or batch range (e.g. `.../c/123/2-10`) |
+| `/stream <link>` | Generate direct seekable HTTP streaming URL |
+
+### Telegram Channel Forwarding (`/tg`)
+
+| Command | Description |
+|---|---|
+| `/tgchannels [query]` | Search and list joined Telegram channels and IDs |
+| `/tgchannel <target>` | Set default target Telegram channel for uploads |
+| `/tg <links...>` | Download/copy messages and upload directly to Telegram channel |
+| Reply `/tg` | Upload the replied message/media to your target Telegram channel |
+
+### WhatsApp Group Upload (`/wa`)
+
+| Command | Description |
+|---|---|
+| `/walogin [phone]` | Link WhatsApp account via QR code or phone pairing code |
+| `/walogout` | Unlink the WhatsApp web device |
+| `/wagroups [query]` | Search and list available WhatsApp groups |
+| `/wagroup <group>` | Set default WhatsApp group for uploads |
+| `/wa <links...>` | Upload messages/media to the default WhatsApp group |
+| `/wa <group> <links...>`| Upload messages/media to a specific WhatsApp group |
+
+### Real-Time Auto-Sync (`/sync` & `/tgsync`)
+
+| Command | Description |
+|---|---|
+| `/sync` or `/tgsync` | Open the interactive Auto-Sync dashboard |
+| `/tgsync add <src> [dest]` | Add a Telegram ➔ Telegram channel auto-sync rule |
+| `/sync addtg <src> [dest]` | Alias for adding a Telegram ➔ Telegram sync rule |
+| `/sync add <src> [group]` | Add a Telegram ➔ WhatsApp group auto-sync rule |
+| `/sync list` (or `/synclist`)| List all configured auto-sync rules and statistics |
+| `/sync pause <id>` | Temporarily pause an auto-sync rule |
+| `/sync resume <id>` | Resume a paused auto-sync rule |
+| `/sync remove <id>` | Delete an auto-sync rule |
+| `/sync catchup <id> [N]` | Backfill the last `N` messages (default: 5, max: 30) |
+| `/sync text <id> <on\|off>` | Toggle syncing text messages |
+| `/sync caption <id> <on\|off>`| Toggle sending media captions |
+| `/sync notify <on\|off>` | Toggle sync status notifications |
+
+### Paid VIP & Administration
+
+| Command | Description |
+|---|---|
+| `/myplan`, `/vip`, `/upgrade` | View subscription status or purchase VIP via Telegram Stars |
+| `/terms` | View VIP subscription terms and conditions |
+| `/paysupport` | View billing and refund support contact info |
+| `/addpaid <user_id> [days]` | *(Owner only)* Manually grant Paid VIP access |
+| `/removepaid <user_id>` | *(Owner only)* Revoke Paid VIP access |
+| `/paidusers`, `/admins` | *(Owner only)* List all current VIP users |
+| `/refundstars <user_id>` | *(Owner only)* Issue refund for a user's latest Stars payment |
+
+---
+
+## Running Tests
+
+Unit tests are included for payment state persistence, idempotency, expiration clamping, and renewal calculations:
+
 ```bash
-cd wa_sidecar && npm install   # requires Node.js >= 20
+python3 -m unittest discover tests
 ```
-Restart the bot, then in Telegram:
-1. `/walogin` — the bot sends a QR code. Scan it from WhatsApp → **Linked devices** → **Link a device**.
-   (Or use `/walogin 94771234567` to get a pairing code instead.)
-2. `/wagroups` — list your groups and their IDs.
-3. `/wagroup <group_id | name>` — set the default group (saved to `.env` as `WA_GROUP_ID`).
 
-### Usage
-| Command | Description |
-|---|---|
-| `/wa https://t.me/c/4351613423/2-50` | Upload posts 2–50 to the default group |
-| `/wa https://t.me/c/4351613423/2 https://t.me/c/4351613423/50` | Start → end range |
-| `/wa My Group https://t.me/c/4351613423/2-10` | Upload to a specific group (name or `…@g.us` ID) |
-| Reply `/wa` to a message with links | Use the links from that message |
-| `/cancel` | Stop the running upload |
-| `/walogout` | Unlink the WhatsApp device |
+---
 
-How files are sent:
-- MP4 videos up to `WA_VIDEO_MAX_MB` (default 100 MB) are sent as **videos**, JPEG/PNG up to 16 MB as **images**, and common audio formats as **audio**.
-- Everything else, or anything over those limits, is sent as a **document**, up to `WA_MAX_FILE_MB` (default 2000 MB). Bigger files are skipped and listed in the summary.
-- Captions are copied over, and text-only posts are sent as text messages.
+## License & Disclaimer
 
-> ⚠️ This uses an unofficial WhatsApp Web client. Sending a lot of messages quickly can get a number banned, so keep `WA_SEND_DELAY_SECONDS` / `BULK_COOLDOWN_*` reasonable, and ideally use a secondary number.
+This project is licensed under the **MIT License**.
 
-
-## Telegram Channel Upload (`/tg`)
-
-Bulk copy or download posts from any public or private Telegram channel (including `noforwards` content-restricted channels) and upload them directly to your own Telegram channel or group.
-
-### Commands
-| Command | Description |
-|---|---|
-| `/tgchannels [query]` | List your Telegram channels/groups and their IDs |
-| `/tgchannel <@username \| channel_id \| name>` | Set the default destination Telegram channel (saved to `.env` as `TG_UPLOAD_CHANNEL_ID`) |
-| `/tg https://t.me/c/4351613423/2-50` | Upload posts 2–50 to the default Telegram channel |
-| `/tg https://t.me/c/4351613423/2 https://t.me/c/4351613423/50` | Start → end range |
-| `/tg @mychannel https://t.me/c/4351613423/2-10` | Upload to a specific Telegram channel (`@username`, `-100...` ID, link, or title) |
-| Reply `/tg [channel]` to any file/video/message | Upload that file or message from the chat to the destination Telegram channel |
-| `/cancel` | Stop the running bulk upload |
-
-
-## Auto-Sync: Telegram ➔ Telegram Channel & WhatsApp (`/sync` & `/tgsync`)
-
-Automatically forward/upload new messages, videos, documents, photos, audio, and text posts from any Telegram channel directly to another **Telegram channel/group** or **WhatsApp group** in real-time as soon as they are published.
-
-### Features
-- **Real-Time Monitoring + Background Poller**: Captures new posts via Telethon's live event listener plus a periodic poller for 100% reliability.
-- **Supports Both Telegram & WhatsApp Destinations**: Sync any source channel to another Telegram channel (`✈️`), a WhatsApp group (`📲`), or both simultaneously!
-- **Works with `noforwards` Restricted Channels**: Automatically uses instant server-side copy when allowed, or parallel multi-connection download + `+faststart` MP4 remux + thumbnail extraction + parallel upload when content protection is enabled.
-- **Persistent Configuration**: Saved to `sync_config.json` so sync mappings survive restarts.
-- **Catchup / Backfill**: Sync the last N posts from a channel immediately with `/sync catchup`.
-- **Interactive Inline Buttons**: Manage rules, pause/resume, toggle captions/text, select default Telegram channels, view WhatsApp groups, or run catchups directly from inline buttons.
-
-### Commands
-| Command | Description |
-|---|---|
-| `/sync` or `/tgsync` | View auto-sync dashboard, connection status, and interactive controls |
-| `/tgsync add <src_channel> [dest_tg_channel]` | Auto-sync a Telegram channel to another Telegram channel (defaults to `TG_UPLOAD_CHANNEL_ID`) |
-| `/sync addtg <src_channel> [dest_tg_channel]` | Alias to add a Telegram ➔ Telegram sync rule |
-| `/sync add <tg_channel> [wa_group]` | Map a Telegram channel to a WhatsApp group (defaults to `WA_GROUP_ID`) |
-| `/sync list` (or `/synclist`, `/tgsynclist`) | List all configured sync rules, IDs, and stats |
-| `/sync pause <id>` | Temporarily pause auto-sync for a rule |
-| `/sync resume <id>` | Resume a paused sync rule |
-| `/sync remove <id>` (or `/unsync <id>`) | Stop auto-syncing and delete the rule |
-| `/sync catchup <id> [count]` | Immediately sync the last N posts (default 5, max 30) |
-| `/sync text <id> <on\|off>` | Toggle syncing text-only messages |
-| `/sync caption <id> <on\|off>` | Toggle including media captions |
-| `/sync notify <on\|off>` | Toggle Telegram status alerts when posts are synced |
-| `/sync status` | Check queue length, sidecar status, and worker health |
-
-### Examples
-- `/tgsync add @source_news @my_backup_channel` — Auto-sync `@source_news` to `@my_backup_channel`
-- `/tgsync add https://t.me/+AbCdEf -1001234567890` — Join private channel and auto-sync to destination Telegram channel
-- `/sync add @technews` — Sync `@technews` to default WhatsApp group
-- `/sync add https://t.me/+AbCdEf "My Group"` — Join private channel and sync to WhatsApp group "My Group"
-- `/sync catchup 1 10` — Sync the last 10 messages from rule #1 right now
-- `/sync pause 1` / `/sync resume 1` — Pause and resume rule #1
+> ⚠️ **Disclaimer**: This tool interacts with Telegram and WhatsApp using user sessions and reverse-engineered protocols. Automating user accounts may be subject to platform Terms of Service. Always adhere to rate limits and use dedicated or secondary accounts for bulk syncing.
